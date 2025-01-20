@@ -205,3 +205,29 @@ The script will:
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+## TODO
+
+### High Priority
+- [ ] Add comprehensive webhook support
+  - [ ] Add webhook handler/router functionality
+  - [ ] Add webhook signature verification middleware
+  - [ ] Add example webhook handlers for common use cases
+  - [ ] Document webhook payload structure and events
+  - [ ] Add webhook testing utilities
+
+### Medium Priority
+- [ ] Add retry mechanism for failed API calls
+- [ ] Add rate limiting support
+- [ ] Add logging configuration options
+- [ ] Add support for bulk SMS sending
+- [ ] Add support for scheduling messages
+
+### Low Priority
+- [ ] Add support for message templates
+- [ ] Add support for contact lists/groups
+- [ ] Add message history tracking
+- [ ] Add support for delivery reports
+
+
+
