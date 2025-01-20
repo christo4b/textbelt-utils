@@ -1,12 +1,12 @@
 [project]
 name = "textbelt-utils"
-version = "0.1.1"
+version = "0.1.2"
 description = "A lightweight Python package for the Textbelt SMS API"
 authors = [
     {name = "Chris Bassano", email = "chrisbassano@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3"
+requires-python = ">=3.8"
 license = "MIT"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -23,11 +23,20 @@ dependencies = [
     "requests (>=2.32.3,<3.0.0)",
 ]
 
+[project.optional-dependencies]
+async = ["httpx[http2] (>=0.27.0)"]
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=8.0.0"
+pytest-asyncio = ">=0.23.0"
+respx = ">=0.20.2"
+
 [tool.poetry.urls]
 Homepage = "https://github.com/christo4b/textbelt-utils"
 
-[project.optional-dependencies]
-async = ["httpx[http2] (>=0.27.0)"]
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
