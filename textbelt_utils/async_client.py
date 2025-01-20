@@ -17,6 +17,8 @@ from .models import (
 from .exceptions import (
     QuotaExceededError,
     InvalidRequestError,
+    RateLimitError,
+    APIError,
 )
 
 class AsyncTextbeltClient:
@@ -46,7 +48,18 @@ class AsyncTextbeltClient:
         }
 
         response = await self._client.post(f"{self.BASE_URL}/text", data=payload)
-        response.raise_for_status()
+        
+        # Handle rate limiting
+        if response.status_code == 429:
+            data = response.json()
+            retry_after = data.get("retryAfter", 60)
+            raise RateLimitError(f"Rate limit exceeded. Retry after {retry_after} seconds", retry_after)
+            
+        # Handle other HTTP errors
+        try:
+            response.raise_for_status()
+        except httpx.HTTPError as e:
+            raise APIError(f"API request failed: {str(e)}")
         
         data = response.json()
         
@@ -180,6 +193,7 @@ class AsyncTextbeltClient:
             QuotaExceededError: If the quota is exceeded during sending
             InvalidRequestError: If any of the messages are invalid
             APIError: If there is an error communicating with the API
+            RateLimitError: If rate limit is exceeded
         """
         results: Dict[str, SMSResponse] = {}
         errors: Dict[str, str] = {}
@@ -203,6 +217,9 @@ class AsyncTextbeltClient:
                 )
                 response = await self.send_sms(sms_request)
                 return phone, response
+            except (QuotaExceededError, RateLimitError) as e:
+                # Propagate critical errors
+                raise
             except Exception as e:
                 return phone, e
         
@@ -211,19 +228,23 @@ class AsyncTextbeltClient:
             # Create tasks for concurrent sending within the batch
             tasks = [send_message(phone) for phone in batch]
             
-            # Wait for all messages in the batch to complete
-            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            # Process results
-            for phone, result in batch_results:
-                if isinstance(result, Exception):
-                    errors[phone] = str(result)
-                else:
-                    results[phone] = result
-            
-            # Apply rate limiting delay between batches if there are more batches
-            if request.delay_between_messages > 0 and batch != phone_batches[-1]:
-                await asyncio.sleep(request.delay_between_messages)
+            try:
+                # Wait for all messages in the batch to complete
+                batch_results = await asyncio.gather(*tasks)
+                
+                # Process results
+                for phone, result in batch_results:
+                    if isinstance(result, Exception):
+                        errors[phone] = str(result)
+                    else:
+                        results[phone] = result
+                
+                # Apply rate limiting delay between batches if there are more batches
+                if request.delay_between_messages > 0 and batch != phone_batches[-1]:
+                    await asyncio.sleep(request.delay_between_messages)
+            except (QuotaExceededError, RateLimitError) as e:
+                # Propagate critical errors
+                raise
         
         # Calculate statistics
         total_messages = len(request.phones)

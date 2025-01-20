@@ -122,9 +122,15 @@ async def test_bulk_send_success(client, base_request, respx_mock):
 async def test_bulk_send_partial_failure(client, base_request, respx_mock):
     # Mock different responses based on phone number
     def mock_response(request):
-        data = httpx.QueryParams.from_bytes(request.content)
-        phone = data.get("phone")
-        
+        # Parse form data
+        form_data = {}
+        for item in request.content.decode().split("&"):
+            if "=" in item:
+                key, value = item.split("=", 1)
+                form_data[key] = value.replace("%2B", "+")  # Handle URL encoding
+
+        phone = form_data.get("phone")
+
         if phone == "+12025550108":
             return httpx.Response(
                 200,
@@ -138,7 +144,8 @@ async def test_bulk_send_partial_failure(client, base_request, respx_mock):
             200,
             json={
                 "success": False,
-                "error": "Invalid number"
+                "error": "Invalid number",
+                "quotaRemaining": 99
             }
         )
 
@@ -149,8 +156,10 @@ async def test_bulk_send_partial_failure(client, base_request, respx_mock):
     assert response.total_messages == 2
     assert response.successful_messages == 1
     assert response.failed_messages == 1
-    assert response.success is False
-    assert response.partial_success is True
+    assert not response.success
+    assert response.partial_success
+    assert len(response.errors) == 1
+    assert "Invalid number" in response.errors["+12025550109"]
 
 @pytest.mark.asyncio
 async def test_bulk_send_quota_exceeded(client, base_request, respx_mock):
@@ -159,13 +168,15 @@ async def test_bulk_send_quota_exceeded(client, base_request, respx_mock):
             200,
             json={
                 "success": False,
+                "quotaRemaining": 0,
                 "error": "Out of quota"
             }
         )
     )
 
-    with pytest.raises(QuotaExceededError):
+    with pytest.raises(QuotaExceededError) as exc_info:
         await client.send_bulk_sms(base_request)
+    assert "quota exceeded" in str(exc_info.value)
 
 @pytest.mark.asyncio
 async def test_bulk_send_rate_limit(client, base_request, respx_mock):
@@ -182,7 +193,6 @@ async def test_bulk_send_rate_limit(client, base_request, respx_mock):
 
     with pytest.raises(RateLimitError) as exc_info:
         await client.send_bulk_sms(base_request)
-    
     assert exc_info.value.retry_after == 60
 
 @pytest.mark.asyncio

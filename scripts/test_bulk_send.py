@@ -1,18 +1,15 @@
-import os
-from textbelt_utils import TextbeltClient, BulkSMSRequest
+from textbelt_utils import (
+    TextbeltClient,
+    BulkSMSRequest,
+    load_config,
+    get_env_var,
+)
 from textbelt_utils.exceptions import QuotaExceededError, InvalidRequestError
 
-def get_env_var(var_name: str) -> str:
-    """Get environment variable or raise error with helpful message."""
-    value = os.getenv(var_name)
-    if not value:
-        raise ValueError(
-            f"Please set {var_name} environment variable\n"
-            f"Example: export {var_name}=your_{var_name.lower()}_here"
-        )
-    return value
-
 def main():
+    # Load environment variables from .env file
+    load_config()
+    
     # Get configuration from environment variables
     api_key = get_env_var('TEXTBELT_API_KEY')
     test_phone1 = get_env_var('TEXTBELT_TEST_PHONE')

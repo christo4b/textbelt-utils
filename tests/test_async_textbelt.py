@@ -24,7 +24,7 @@ async def client():
 @pytest.fixture
 def base_request():
     return SMSRequest(
-        phone="+1234567890"Add support for bulk SMS sending,
+        phone="+1234567890",
         message="Test message",
         key="test_key"
     )

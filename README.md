@@ -307,6 +307,52 @@ async def send_async():
 
 ## Development
 
+### Environment Setup
+
+1. Copy the environment template:
+```bash
+cp .env.template .env
+```
+
+2. Edit `.env` with your configuration:
+```bash
+# Textbelt API Configuration
+TEXTBELT_API_KEY=your_api_key_here
+
+# Test Phone Numbers (E.164 format)
+TEXTBELT_TEST_PHONE=your_test_phone_here
+TEXTBELT_TEST_PHONE2=your_second_test_phone_here
+```
+
+The package automatically loads environment variables from your `.env` file on import. You can also explicitly load or reload configuration:
+
+```python
+from textbelt_utils import load_config, get_env_var
+
+# Load default .env file
+load_config()
+
+# Load specific env file
+load_config(".env.test")
+
+# Get environment variables with helpful error messages
+api_key = get_env_var('TEXTBELT_API_KEY')
+test_phone = get_env_var('TEXTBELT_TEST_PHONE')
+
+# Get with default value
+debug_mode = get_env_var('DEBUG', 'false')
+```
+
+For testing, you can use `.env.test` which contains safe test values:
+
+```bash
+# Use test environment
+cp .env.test .env
+
+# Or specify a different env file in code
+load_config(".env.test")
+```
+
 ### Running Tests
 
 ```bash
@@ -317,7 +363,7 @@ poetry run python -m unittest discover tests
 
 ### Testing SMS
 
-The package includes a `test_send.py` script to help you verify your Textbelt integration. To use it:
+The package includes test scripts in the `scripts` directory to help you verify your Textbelt integration. To use them:
 
 1. Set up your environment variables:
 ```bash
@@ -325,55 +371,33 @@ export TEXTBELT_API_KEY=your_api_key_here
 export TEXTBELT_TEST_PHONE=your_phone_number_here  # E.164 format, e.g., +1234567890
 ```
 
-2. Run the test script:
+2. Run the test scripts:
 ```bash
-poetry run python test_send.py
+# Test basic SMS
+poetry run python scripts/test_send.py
+
+# Test async SMS
+poetry run python scripts/test_send_async.py
+
+# Test bulk SMS
+poetry run python scripts/test_bulk_send.py
 ```
 
-The script will:
-- Send a test message (using test mode, won't use your quota)
-- Display the message ID and delivery status
+The scripts will:
+- Send test messages (using test mode, won't use your quota)
+- Display message IDs and delivery status
 - Show your remaining quota
 
 ### Testing OTP
 
-The package also includes a `test_otp.py` script to help you test the OTP functionality interactively:
+The package also includes an OTP test script:
 
-1. Set up your environment variables (optional):
-```bash
-export TEXTBELT_API_KEY=your_api_key_here
-export TEXTBELT_TEST_PHONE=your_phone_number_here  # E.164 format, e.g., +1234567890
-```
-
-2. Run the test script:
 ```bash
 # Using environment variables
-poetry run python test_otp.py
+poetry run python scripts/test_otp.py
 
 # Or provide values directly
-poetry run python test_otp.py --phone +1234567890 --key your_api_key
-```
-
-The script will:
-1. Generate and send an OTP to your phone
-2. Wait for you to enter the code you received
-3. Verify the code and show the result
-4. Display your remaining quota
-
-Example output:
-```
-🔐 Testing OTP functionality...
-
-📤 Generating and sending OTP...
-✅ OTP sent successfully!
-📱 Message ID: 12345
-💫 Remaining quota: 100
-
-⌛ Waiting for OTP...
-Enter the verification code you received (or Ctrl+C to cancel): 123456
-
-🔍 Verifying OTP...
-✅ OTP verified successfully!
+poetry run python scripts/test_otp.py --phone +1234567890 --key your_api_key
 ```
 
 ### Security Note
@@ -398,19 +422,20 @@ Enter the verification code you received (or Ctrl+C to cancel): 123456
   - [ ] Add example webhook handlers for common use cases
   - [ ] Document webhook payload structure and events
   - [ ] Add webhook testing utilities
+- [ ] Add retry mechanism for failed API calls
 
 ### Medium Priority
-- [ ] Add retry mechanism for failed API calls
-- [ ] Add rate limiting support
+- [ ] Add rate limiting configuration options
 - [ ] Add logging configuration options
-- [ ] Add support for bulk SMS sending
 - [ ] Add support for scheduling messages
-
-### Low Priority
 - [ ] Add support for message templates
 - [ ] Add support for contact lists/groups
+
+### Low Priority
 - [ ] Add message history tracking
 - [ ] Add support for delivery reports
+- [ ] Add support for analytics and reporting
+- [ ] Add CLI tool for common operations
 
 
 

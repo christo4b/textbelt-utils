@@ -22,6 +22,7 @@ from .exceptions import (
     RateLimitError,
 )
 from .utils import verify_webhook
+from .config import load_config, get_env_var
 
 __all__ = [
     'TextbeltClient',
@@ -44,4 +45,6 @@ __all__ = [
     'BulkSendError',
     'RateLimitError',
     'verify_webhook',
+    'load_config',
+    'get_env_var',
 ]

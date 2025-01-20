@@ -14,6 +14,7 @@ from .exceptions import (
     QuotaExceededError,
     InvalidRequestError,
     APIError,
+    RateLimitError,
 )
 
 class TextbeltClient:
@@ -40,6 +41,12 @@ class TextbeltClient:
             payload["webhookData"] = request.webhook_data
 
         response = requests.post(f"{self.BASE_URL}/text", data=payload)
+
+        # Handle rate limiting
+        if response.status_code == 429:
+            data = response.json()
+            retry_after = data.get("retryAfter", 60)
+            raise RateLimitError(f"Rate limit exceeded. Retry after {retry_after} seconds", retry_after)
 
         try:
             data = response.json()
@@ -117,6 +124,7 @@ class TextbeltClient:
             QuotaExceededError: If the quota is exceeded during sending
             InvalidRequestError: If any of the messages are invalid
             APIError: If there is an error communicating with the API
+            RateLimitError: If rate limit is exceeded
         """
         results: dict[str, SMSResponse] = {}
         errors: dict[str, str] = {}
@@ -149,6 +157,9 @@ class TextbeltClient:
                     if request.delay_between_messages > 0:
                         time.sleep(request.delay_between_messages)
                         
+                except (QuotaExceededError, RateLimitError) as e:
+                    # Propagate critical errors immediately
+                    raise
                 except Exception as e:
                     errors[phone] = str(e)
         

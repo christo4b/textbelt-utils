@@ -106,7 +106,8 @@ class TestBulkSMS(unittest.TestCase):
     @patch('requests.post')
     def test_bulk_send_partial_failure(self, mock_post):
         def mock_send(*args, **kwargs):
-            phone = json.loads(kwargs.get('data', '{}')).get('phone')
+            data = kwargs.get('data', {})
+            phone = data.get('phone')
             if phone == "+12025550108":
                 return Mock(
                     ok=True,
@@ -120,7 +121,8 @@ class TestBulkSMS(unittest.TestCase):
                 ok=True,
                 json=lambda: {
                     "success": False,
-                    "error": "Invalid number"
+                    "error": "Invalid number",
+                    "quotaRemaining": 99
                 }
             )
 
@@ -133,35 +135,44 @@ class TestBulkSMS(unittest.TestCase):
         self.assertEqual(response.failed_messages, 1)
         self.assertFalse(response.success)
         self.assertTrue(response.partial_success)
+        self.assertEqual(len(response.errors), 1)
+        self.assertIn("Invalid number", response.errors["+12025550109"])
 
     @patch('requests.post')
     def test_bulk_send_quota_exceeded(self, mock_post):
-        mock_response = Mock()
-        mock_response.ok = True
-        mock_response.json.return_value = {
-            "success": False,
-            "error": "Out of quota"
-        }
-        mock_post.return_value = mock_response
+        def mock_send(*args, **kwargs):
+            return Mock(
+                ok=True,
+                json=lambda: {
+                    "success": False,
+                    "quotaRemaining": 0,
+                    "error": "Out of quota"
+                }
+            )
 
-        with self.assertRaises(QuotaExceededError):
+        mock_post.side_effect = mock_send
+
+        with self.assertRaises(QuotaExceededError) as context:
             self.client.send_bulk_sms(self.base_request)
+        self.assertIn("quota exceeded", str(context.exception))
 
     @patch('requests.post')
     def test_bulk_send_rate_limit(self, mock_post):
-        mock_response = Mock()
-        mock_response.ok = False
-        mock_response.status_code = 429
-        mock_response.json.return_value = {
-            "success": False,
-            "error": "Rate limit exceeded",
-            "retryAfter": 60
-        }
-        mock_post.return_value = mock_response
+        def mock_send(*args, **kwargs):
+            return Mock(
+                ok=False,
+                status_code=429,
+                json=lambda: {
+                    "success": False,
+                    "error": "Rate limit exceeded",
+                    "retryAfter": 60
+                }
+            )
+
+        mock_post.side_effect = mock_send
 
         with self.assertRaises(RateLimitError) as context:
             self.client.send_bulk_sms(self.base_request)
-        
         self.assertEqual(context.exception.retry_after, 60)
 
 if __name__ == '__main__':

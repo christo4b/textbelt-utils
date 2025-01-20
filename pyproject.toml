@@ -1,6 +1,6 @@
 [project]
 name = "textbelt-utils"
-version = "0.3.0"
+version = "0.3.1"
 description = "A lightweight Python package for interacting with the Textbelt SMS API"
 authors = [
     {name = "Chris Bassano", email = "chrisbassano@gmail.com"}
@@ -21,6 +21,7 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2.32.0,<3.0.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]
