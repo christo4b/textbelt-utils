@@ -103,4 +103,58 @@ async def test_send_test_sms(client, base_request, respx_mock):
 
     response = await client.send_test(base_request)
     assert response.success is True
-    assert response.text_id == "test_12345" 
+    assert response.text_id == "test_12345"
+
+@pytest.mark.asyncio
+async def test_send_sms_with_sender_name(client, respx_mock):
+    request = SMSRequest(
+        phone="+1234567890",
+        message="Test message with custom sender",
+        key="test_key",
+        sender="MyCompany"
+    )
+
+    # Mock to ensure sender is included in the request
+    route = respx_mock.post("https://textbelt.com/text").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "success": True,
+                "quotaRemaining": 100,
+                "textId": "12345"
+            }
+        )
+    )
+
+    response = await client.send_sms(request)
+    
+    # Verify the sender was included in the request data
+    assert b"sender=MyCompany" in route.calls.last.request.content
+    assert response.success is True
+
+@pytest.mark.asyncio
+async def test_send_test_sms_with_sender_name(client, respx_mock):
+    request = SMSRequest(
+        phone="+1234567890",
+        message="Test message with custom sender",
+        key="test_key",
+        sender="MyCompany"
+    )
+
+    # Mock to ensure sender is included in the request
+    route = respx_mock.post("https://textbelt.com/text").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "success": True,
+                "quotaRemaining": 100,
+                "textId": "test_12345"
+            }
+        )
+    )
+
+    response = await client.send_test(request)
+    
+    # Verify the sender was included in the request data
+    assert b"sender=MyCompany" in route.calls.last.request.content
+    assert response.success is True 
