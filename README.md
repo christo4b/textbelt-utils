@@ -8,6 +8,7 @@ A lightweight Python package for interacting with the Textbelt SMS API. Send SMS
 - 📝 Type hints and dataclasses for better IDE support
 - ✅ Webhook verification
 - 🧪 Test mode support
+- 🏢 Custom sender name support
 - 0️⃣ Zero external dependencies beyond requests
 
 ## Installation
@@ -60,8 +61,37 @@ request_with_webhook = SMSRequest(
     webhook_data="custom_data"
 )
 
+# SMS with custom sender name
+request_with_sender = SMSRequest(
+    phone="+1234567890",
+    message="Message from your company!",
+    key="your_api_key",
+    sender="MyCompany"  # Set a custom sender name for this message
+)
+
 response = client.send_sms(request)
 ```
+
+### Sender Name
+
+You can set a sender name for your SMS messages in two ways:
+
+1. Account-wide: Set a default sender name in your Textbelt account settings at https://textbelt.com/account
+2. Per-message: Set the `sender` parameter in your `SMSRequest`
+
+The sender name is used for compliance purposes and helps recipients identify who sent the message. If you don't specify a sender name, Textbelt will automatically append your default sender name to the message (unless it already appears in the message content).
+
+```python
+# Example with custom sender name
+request = SMSRequest(
+    phone="+1234567890",
+    message="Important update!",
+    key="your_api_key",
+    sender="MyCompany"  # This overrides your account's default sender name
+)
+```
+
+Note: The sender name is used strictly for compliance purposes and does not override the "From" number for the SMS sender.
 
 ### Check Message Status
 
