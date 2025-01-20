@@ -213,3 +213,111 @@ class OTPVerifyResponse:
     success: bool
     is_valid_otp: bool
     error: Optional[str] = None
+
+@dataclass
+class BulkSMSRequest:
+    """Request model for sending bulk SMS messages via Textbelt API.
+    
+    Attributes:
+        phones: List of phone numbers in E.164 format (e.g., ['+1234567890', '+1987654321'])
+        message: Single message to send to all recipients, or None if using individual_messages
+        individual_messages: Dict mapping phone numbers to their specific messages, or None if using message
+        key: Your Textbelt API key
+        sender: Optional sender name for compliance purposes
+        reply_webhook_url: Optional URL to receive reply webhooks
+        webhook_data: Optional custom data to include in webhooks
+        batch_size: Maximum number of messages to send concurrently (default: 100)
+        delay_between_messages: Optional delay in seconds between messages (default: 0.1)
+    """
+    phones: list[str]
+    message: Optional[str] = None
+    individual_messages: Optional[dict[str, str]] = None
+    key: str = ""
+    sender: Optional[str] = None
+    reply_webhook_url: Optional[str] = None
+    webhook_data: Optional[str] = None
+    batch_size: int = 100
+    delay_between_messages: float = 0.1
+
+    # Constants for validation
+    MAX_BATCH_SIZE: ClassVar[int] = 1000
+    MIN_DELAY: ClassVar[float] = 0.1
+
+    def __post_init__(self):
+        """Validate the request data after initialization."""
+        # Validate phone numbers
+        if not self.phones:
+            raise ValueError("At least one phone number must be provided")
+        
+        for phone in self.phones:
+            if not SMSRequest.PHONE_REGEX.match(phone):
+                raise ValueError(
+                    f"Phone number {phone} must be in E.164 format (e.g., +1234567890)"
+                )
+        
+        # Validate message configuration
+        if self.message is None and self.individual_messages is None:
+            raise ValueError("Either message or individual_messages must be provided")
+        if self.message is not None and self.individual_messages is not None:
+            raise ValueError("Cannot provide both message and individual_messages")
+        
+        # If using individual messages, validate all phones have messages
+        if self.individual_messages is not None:
+            missing_phones = set(self.phones) - set(self.individual_messages.keys())
+            if missing_phones:
+                raise ValueError(f"Missing messages for phones: {missing_phones}")
+            
+            # Validate message lengths
+            for phone, msg in self.individual_messages.items():
+                if len(msg) > SMSRequest.MAX_MESSAGE_LENGTH:
+                    raise ValueError(
+                        f"Message for {phone} exceeds maximum length of {SMSRequest.MAX_MESSAGE_LENGTH}"
+                    )
+                if len(msg) == 0:
+                    raise ValueError(f"Message for {phone} cannot be empty")
+        
+        # If using shared message, validate its length
+        if self.message is not None:
+            if len(self.message) > SMSRequest.MAX_MESSAGE_LENGTH:
+                raise ValueError(
+                    f"Message exceeds maximum length of {SMSRequest.MAX_MESSAGE_LENGTH}"
+                )
+            if len(self.message) == 0:
+                raise ValueError("Message cannot be empty")
+        
+        # Validate batch size
+        if self.batch_size < 1:
+            raise ValueError("Batch size must be at least 1")
+        if self.batch_size > self.MAX_BATCH_SIZE:
+            raise ValueError(f"Batch size cannot exceed {self.MAX_BATCH_SIZE}")
+        
+        # Validate delay
+        if self.delay_between_messages < self.MIN_DELAY:
+            raise ValueError(f"Delay between messages must be at least {self.MIN_DELAY} seconds")
+
+@dataclass
+class BulkSMSResponse:
+    """Response model for bulk SMS sending operations.
+    
+    Attributes:
+        total_messages: Total number of messages in the batch
+        successful_messages: Number of successfully sent messages
+        failed_messages: Number of failed messages
+        results: Dictionary mapping phone numbers to their individual SMSResponse objects
+        errors: Dictionary mapping phone numbers to their error messages (if any)
+    """
+    total_messages: int
+    successful_messages: int
+    failed_messages: int
+    results: dict[str, SMSResponse]
+    errors: dict[str, str]
+
+    @property
+    def success(self) -> bool:
+        """Return True if all messages were sent successfully."""
+        return self.failed_messages == 0
+
+    @property
+    def partial_success(self) -> bool:
+        """Return True if some messages were sent successfully."""
+        return self.successful_messages > 0 and self.failed_messages > 0

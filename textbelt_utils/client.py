@@ -1,11 +1,14 @@
 import json
 import requests
+import time
 
 from .models import (
     SMSRequest,
     SMSResponse,
     StatusResponse,
     QuotaResponse,
+    BulkSMSRequest,
+    BulkSMSResponse,
 )
 from .exceptions import (
     QuotaExceededError,
@@ -100,3 +103,64 @@ class TextbeltClient:
             webhook_data=request.webhook_data
         )
         return self.send_sms(test_request)
+
+    def send_bulk_sms(self, request: BulkSMSRequest) -> BulkSMSResponse:
+        """Send multiple SMS messages in bulk with rate limiting.
+        
+        Args:
+            request: A BulkSMSRequest object containing the messages to send
+            
+        Returns:
+            A BulkSMSResponse object containing the results of the bulk send operation
+            
+        Raises:
+            QuotaExceededError: If the quota is exceeded during sending
+            InvalidRequestError: If any of the messages are invalid
+            APIError: If there is an error communicating with the API
+        """
+        results: dict[str, SMSResponse] = {}
+        errors: dict[str, str] = {}
+        
+        # Create batches of phone numbers
+        phone_batches = [
+            request.phones[i:i + request.batch_size]
+            for i in range(0, len(request.phones), request.batch_size)
+        ]
+        
+        for batch in phone_batches:
+            for phone in batch:
+                try:
+                    # Create individual SMS request
+                    message = request.message if request.message is not None else request.individual_messages[phone]
+                    sms_request = SMSRequest(
+                        phone=phone,
+                        message=message,
+                        key=request.key or self.api_key,
+                        sender=request.sender,
+                        reply_webhook_url=request.reply_webhook_url,
+                        webhook_data=request.webhook_data
+                    )
+                    
+                    # Send the message
+                    response = self.send_sms(sms_request)
+                    results[phone] = response
+                    
+                    # Apply rate limiting delay
+                    if request.delay_between_messages > 0:
+                        time.sleep(request.delay_between_messages)
+                        
+                except Exception as e:
+                    errors[phone] = str(e)
+        
+        # Calculate statistics
+        total_messages = len(request.phones)
+        successful_messages = len([r for r in results.values() if r.success])
+        failed_messages = total_messages - successful_messages
+        
+        return BulkSMSResponse(
+            total_messages=total_messages,
+            successful_messages=successful_messages,
+            failed_messages=failed_messages,
+            results=results,
+            errors=errors
+        )

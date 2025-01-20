@@ -10,6 +10,8 @@ A lightweight Python package for interacting with the Textbelt SMS API. Send SMS
 - 🧪 Test mode support
 - 🔐 One-Time Password (OTP) support
 - 🏢 Custom sender name support
+- 📨 Bulk SMS support with rate limiting
+- ⚡ Async/sync clients for flexibility
 - 0️⃣ Zero external dependencies beyond requests
 
 ## Installation
@@ -71,6 +73,70 @@ request_with_sender = SMSRequest(
 )
 
 response = client.send_sms(request)
+```
+
+### Bulk SMS
+
+Send multiple SMS messages efficiently with rate limiting and batching:
+
+```python
+from textbelt_utils import TextbeltClient, BulkSMSRequest
+
+client = TextbeltClient(api_key="your_api_key")
+
+# Send same message to multiple recipients
+request = BulkSMSRequest(
+    phones=["+1234567890", "+1987654321"],
+    message="Broadcast message to all recipients!",
+    batch_size=100,  # Process in batches of 100
+    delay_between_messages=0.1  # 100ms delay between messages
+)
+
+# Or send individual messages to each recipient
+request = BulkSMSRequest(
+    phones=["+1234567890", "+1987654321"],
+    individual_messages={
+        "+1234567890": "Custom message for recipient 1",
+        "+1987654321": "Different message for recipient 2"
+    },
+    batch_size=100,
+    delay_between_messages=0.1
+)
+
+response = client.send_bulk_sms(request)
+print(f"Total messages: {response.total_messages}")
+print(f"Successful: {response.successful_messages}")
+print(f"Failed: {response.failed_messages}")
+
+# Check individual results
+for phone, result in response.results.items():
+    if result.text_id:
+        status = client.check_status(result.text_id)
+        print(f"{phone}: {status.status}")
+```
+
+### Async Bulk SMS
+
+Send messages concurrently with proper rate limiting:
+
+```python
+from textbelt_utils import AsyncTextbeltClient, BulkSMSRequest
+import asyncio
+
+async def send_bulk():
+    async with AsyncTextbeltClient(api_key="your_api_key") as client:
+        request = BulkSMSRequest(
+            phones=["+1234567890", "+1987654321"],
+            message="Async bulk message!",
+            batch_size=100,  # Process 100 messages concurrently
+            delay_between_messages=0.1
+        )
+        
+        response = await client.send_bulk_sms(request)
+        print(f"Sent: {response.successful_messages}")
+        print(f"Failed: {response.failed_messages}")
+
+asyncio.run(send_bulk())
 ```
 
 ### Sender Name

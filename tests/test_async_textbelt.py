@@ -24,7 +24,7 @@ async def client():
 @pytest.fixture
 def base_request():
     return SMSRequest(
-        phone="+1234567890",
+        phone="+1234567890"Add support for bulk SMS sending,
         message="Test message",
         key="test_key"
     )
@@ -142,19 +142,6 @@ async def test_send_test_sms(client, base_request, respx_mock):
     assert response.success is True
     assert response.text_id == "test_12345"
 
-<<<<<<< HEAD
-@pytest.mark.asyncio
-async def test_send_sms_with_sender_name(client, respx_mock):
-    request = SMSRequest(
-        phone="+1234567890",
-        message="Test message with custom sender",
-        key="test_key",
-        sender="MyCompany"
-    )
-
-    # Mock to ensure sender is included in the request
-    route = respx_mock.post("https://textbelt.com/text").mock(
-=======
 def test_otp_request_validation():
     # Test valid OTP generate request
     request = OTPGenerateRequest(
@@ -247,47 +234,17 @@ async def test_generate_otp_success(client, respx_mock):
     )
 
     respx_mock.post("https://textbelt.com/otp/generate").mock(
->>>>>>> 3715876 (Add OTP support)
         return_value=httpx.Response(
             200,
             json={
                 "success": True,
                 "quotaRemaining": 100,
-<<<<<<< HEAD
-                "textId": "12345"
-=======
                 "textId": "12345",
                 "otp": "123456"  # Only returned in test mode
->>>>>>> 3715876 (Add OTP support)
             }
         )
     )
 
-<<<<<<< HEAD
-    response = await client.send_sms(request)
-    
-    # Verify the sender was included in the request data
-    assert b"sender=MyCompany" in route.calls.last.request.content
-    assert response.success is True
-
-@pytest.mark.asyncio
-async def test_send_test_sms_with_sender_name(client, respx_mock):
-    request = SMSRequest(
-        phone="+1234567890",
-        message="Test message with custom sender",
-        key="test_key",
-        sender="MyCompany"
-    )
-
-    # Mock to ensure sender is included in the request
-    route = respx_mock.post("https://textbelt.com/text").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "success": True,
-                "quotaRemaining": 100,
-                "textId": "test_12345"
-=======
     response = await client.generate_otp(request)
     assert response.success is True
     assert response.quota_remaining == 100
@@ -309,18 +266,10 @@ async def test_generate_otp_quota_exceeded(client, respx_mock):
                 "success": False,
                 "quotaRemaining": 0,
                 "error": "Out of quota"
->>>>>>> 3715876 (Add OTP support)
             }
         )
     )
 
-<<<<<<< HEAD
-    response = await client.send_test(request)
-    
-    # Verify the sender was included in the request data
-    assert b"sender=MyCompany" in route.calls.last.request.content
-    assert response.success is True 
-=======
     with pytest.raises(QuotaExceededError):
         await client.generate_otp(request)
 
@@ -366,5 +315,4 @@ async def test_verify_otp_invalid(client, respx_mock):
 
     response = await client.verify_otp(request)
     assert response.success is True
-    assert response.is_valid_otp is False 
->>>>>>> 3715876 (Add OTP support)
+    assert response.is_valid_otp is False

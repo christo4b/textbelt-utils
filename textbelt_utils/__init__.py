@@ -10,12 +10,16 @@ from .models import (
     OTPGenerateResponse,
     OTPVerifyRequest,
     OTPVerifyResponse,
+    BulkSMSRequest,
+    BulkSMSResponse,
 )
 from .exceptions import (
     QuotaExceededError,
     InvalidRequestError,
     WebhookVerificationError,
     APIError,
+    BulkSendError,
+    RateLimitError,
 )
 from .utils import verify_webhook
 
@@ -31,9 +35,13 @@ __all__ = [
     'OTPGenerateResponse',
     'OTPVerifyRequest',
     'OTPVerifyResponse',
+    'BulkSMSRequest',
+    'BulkSMSResponse',
     'QuotaExceededError',
     'InvalidRequestError',
     'WebhookVerificationError',
     'APIError',
+    'BulkSendError',
+    'RateLimitError',
     'verify_webhook',
 ]

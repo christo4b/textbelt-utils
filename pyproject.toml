@@ -1,7 +1,7 @@
 [project]
 name = "textbelt-utils"
-version = "0.2.0"
-description = "A lightweight Python package for the Textbelt SMS API"
+version = "0.3.0"
+description = "A lightweight Python package for interacting with the Textbelt SMS API"
 authors = [
     {name = "Chris Bassano", email = "chrisbassano@gmail.com"}
 ]
