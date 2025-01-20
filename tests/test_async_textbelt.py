@@ -25,6 +25,39 @@ def base_request():
         key="test_key"
     )
 
+def test_sms_request_validation():
+    # Test valid phone number
+    request = SMSRequest(
+        phone="+1234567890",
+        message="Test message",
+        key="test_key"
+    )
+    assert request.phone == "+1234567890"
+
+    # Test invalid phone number format
+    with pytest.raises(ValueError, match="Phone number must be in E.164 format"):
+        SMSRequest(
+            phone="1234567890",  # Missing +
+            message="Test message",
+            key="test_key"
+        )
+
+    # Test empty message
+    with pytest.raises(ValueError, match="Message cannot be empty"):
+        SMSRequest(
+            phone="+1234567890",
+            message="",
+            key="test_key"
+        )
+
+    # Test message too long
+    with pytest.raises(ValueError, match="Message length exceeds maximum"):
+        SMSRequest(
+            phone="+1234567890",
+            message="x" * (SMSRequest.MAX_MESSAGE_LENGTH + 1),
+            key="test_key"
+        )
+
 @pytest.mark.asyncio
 async def test_send_sms_success(client, base_request, respx_mock):
     respx_mock.post("https://textbelt.com/text").mock(
