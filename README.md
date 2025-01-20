@@ -121,6 +121,48 @@ except APIError as e:
     print(f"API error: {e}")
 ```
 
+## Asynchronous Usage
+
+```python
+from textbelt_utils import AsyncTextbeltClient, SMSRequest
+import asyncio
+
+async def main():
+    async with AsyncTextbeltClient(api_key="your_api_key") as client:
+        # Send SMS
+        request = SMSRequest(
+            phone="+1234567890",
+            message="Async hello!",
+            key="your_api_key"
+        )
+        response = await client.send_sms(request)
+        
+        # Check status
+        status = await client.check_status(response.text_id)
+        
+        # Check quota
+        quota = await client.check_quota()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### Mixed Sync/Async Usage
+
+```python
+from textbelt_utils import TextbeltClient, AsyncTextbeltClient, SMSRequest
+
+# Synchronous
+sync_client = TextbeltClient(api_key="your_api_key")
+sync_response = sync_client.send_sms(request)
+
+# Asynchronous
+async def send_async():
+    async with AsyncTextbeltClient(api_key="your_api_key") as client:
+        async_response = await client.send_sms(request)
+```
+
+
 ## Development
 
 ### Running Tests
@@ -129,6 +171,33 @@ except APIError as e:
 python -m unittest discover tests
 ```
 
+## Testing Your Integration
+
+### Using the Test Script
+
+The package includes a `test_send.py` script to help you verify your Textbelt integration. To use it:
+
+1. Set up your environment variables:
+```bash
+export TEXTBELT_API_KEY=your_api_key_here
+export TEXTBELT_TEST_PHONE=your_phone_number_here  # E.164 format, e.g., +1234567890
+```
+
+2. Run the test script:
+```bash
+poetry run python test_send.py
+```
+
+The script will:
+- Send a test message (using test mode, won't use your quota)
+- Display the message ID and delivery status
+- Show your remaining quota
+
+### Security Note
+- Never commit `test_send.py` with actual phone numbers or API keys
+- Always use environment variables for sensitive data
+- Add `test_send.py` to your `.gitignore` if you modify it with any sensitive data
+
 ## Contributing
 
 1. Fork the repository
@@ -136,7 +205,3 @@ python -m unittest discover tests
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.

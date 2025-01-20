@@ -3,14 +3,16 @@ name = "textbelt-utils"
 version = "0.1.0"
 description = "A lightweight Python package for the Textbelt SMS API"
 authors = [
-    {name = "Chris Bassano",email = "chrisbassano@gmail.com"}
+    {name = "Chris Bassano", email = "chrisbassano@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "requests (>=2.32.3,<3.0.0)"
+    "requests (>=2.32.3,<3.0.0)",
 ]
 
+[project.optional-dependencies]
+async = ["httpx[http2] (>=0.27.0)"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
