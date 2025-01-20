@@ -1,4 +1,3 @@
-from typing import Optional
 import httpx
 
 from .models import (
@@ -8,10 +7,8 @@ from .models import (
     QuotaResponse,
 )
 from .exceptions import (
-    TextbeltError,
     QuotaExceededError,
     InvalidRequestError,
-    APIError,
 )
 
 class AsyncTextbeltClient:

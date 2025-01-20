@@ -1,7 +1,6 @@
 import hmac
 import hashlib
 import time
-from typing import Optional
 
 from .exceptions import WebhookVerificationError
 

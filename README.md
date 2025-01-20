@@ -168,7 +168,7 @@ async def send_async():
 ### Running Tests
 
 ```bash
-python -m unittest discover tests
+poetry run python -m unittest discover tests
 ```
 
 ## Testing Your Integration

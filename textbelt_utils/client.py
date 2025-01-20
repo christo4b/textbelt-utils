@@ -1,6 +1,5 @@
 import json
 import requests
-from typing import Optional
 
 from .models import (
     SMSRequest,
@@ -9,7 +8,6 @@ from .models import (
     QuotaResponse,
 )
 from .exceptions import (
-    TextbeltError,
     QuotaExceededError,
     InvalidRequestError,
     APIError,

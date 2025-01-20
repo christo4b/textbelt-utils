@@ -3,8 +3,8 @@ from unittest.mock import patch, Mock
 import json
 
 from textbelt_utils.client import TextbeltClient
-from textbelt_utils.models import SMSRequest, SMSResponse, StatusResponse, QuotaResponse
-from textbelt_utils.exceptions import QuotaExceededError, InvalidRequestError, APIError, WebhookVerificationError
+from textbelt_utils.models import SMSRequest
+from textbelt_utils.exceptions import QuotaExceededError, WebhookVerificationError
 from textbelt_utils.utils import verify_webhook, is_valid_e164
 
 class TestTextbeltClient(unittest.TestCase):
