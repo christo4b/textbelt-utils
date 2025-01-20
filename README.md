@@ -8,6 +8,7 @@ A lightweight Python package for interacting with the Textbelt SMS API. Send SMS
 - 📝 Type hints and dataclasses for better IDE support
 - ✅ Webhook verification
 - 🧪 Test mode support
+- 🔐 One-Time Password (OTP) support
 - 🏢 Custom sender name support
 - 0️⃣ Zero external dependencies beyond requests
 
@@ -127,6 +128,51 @@ is_valid = verify_webhook(
 )
 ```
 
+### One-Time Password (OTP)
+
+The package provides built-in support for generating and verifying one-time passwords:
+
+```python
+from textbelt_utils import AsyncTextbeltClient, OTPGenerateRequest, OTPVerifyRequest
+
+async def handle_otp():
+    async with AsyncTextbeltClient(api_key="your_api_key") as client:
+        # Generate and send OTP
+        generate_request = OTPGenerateRequest(
+            phone="+1234567890",
+            userid="user@example.com",  # Unique identifier for your user
+            key="your_api_key",
+            message="Your verification code is $OTP",  # Optional custom message
+            lifetime=180,  # Optional validity duration in seconds (default: 180)
+            length=6      # Optional code length (default: 6)
+        )
+        
+        response = await client.generate_otp(generate_request)
+        print(f"OTP sent! Message ID: {response.text_id}")
+        
+        # Later, verify the OTP entered by the user
+        verify_request = OTPVerifyRequest(
+            otp="123456",    # Code entered by user
+            userid="user@example.com",  # Same userid used in generate
+            key="your_api_key"
+        )
+        
+        verify_response = await client.verify_otp(verify_request)
+        if verify_response.is_valid_otp:
+            print("OTP verified successfully!")
+        else:
+            print("Invalid OTP")
+```
+
+#### OTP Features
+
+- **Custom Messages**: Use the `$OTP` placeholder in your message to control where the code appears
+- **Configurable Lifetime**: Set how long the code remains valid (30-3600 seconds)
+- **Configurable Length**: Choose the number of digits in the code (4-10 digits)
+- **No Extra Cost**: OTP functionality is included in your regular SMS quota
+- **Automatic Cleanup**: Invalid/expired codes are automatically cleaned up
+- **Input Validation**: Built-in validation for phone numbers, message length, and code format
+
 ## Error Handling
 
 The package provides specific exceptions for different error cases:
@@ -203,7 +249,7 @@ poetry run python -m unittest discover tests
 
 ## Testing Your Integration
 
-### Using the Test Script
+### Testing SMS
 
 The package includes a `test_send.py` script to help you verify your Textbelt integration. To use it:
 
@@ -223,10 +269,51 @@ The script will:
 - Display the message ID and delivery status
 - Show your remaining quota
 
+### Testing OTP
+
+The package also includes a `test_otp.py` script to help you test the OTP functionality interactively:
+
+1. Set up your environment variables (optional):
+```bash
+export TEXTBELT_API_KEY=your_api_key_here
+export TEXTBELT_TEST_PHONE=your_phone_number_here  # E.164 format, e.g., +1234567890
+```
+
+2. Run the test script:
+```bash
+# Using environment variables
+poetry run python test_otp.py
+
+# Or provide values directly
+poetry run python test_otp.py --phone +1234567890 --key your_api_key
+```
+
+The script will:
+1. Generate and send an OTP to your phone
+2. Wait for you to enter the code you received
+3. Verify the code and show the result
+4. Display your remaining quota
+
+Example output:
+```
+🔐 Testing OTP functionality...
+
+📤 Generating and sending OTP...
+✅ OTP sent successfully!
+📱 Message ID: 12345
+💫 Remaining quota: 100
+
+⌛ Waiting for OTP...
+Enter the verification code you received (or Ctrl+C to cancel): 123456
+
+🔍 Verifying OTP...
+✅ OTP verified successfully!
+```
+
 ### Security Note
-- Never commit `test_send.py` with actual phone numbers or API keys
+- Never commit test scripts with actual phone numbers or API keys
 - Always use environment variables for sensitive data
-- Add `test_send.py` to your `.gitignore` if you modify it with any sensitive data
+- Add test scripts to your `.gitignore` if you modify them with any sensitive data
 
 ## Contributing
 

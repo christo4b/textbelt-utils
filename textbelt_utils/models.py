@@ -109,3 +109,107 @@ class QuotaResponse:
     """
     success: bool
     quota_remaining: int
+
+@dataclass
+class OTPGenerateRequest:
+    """Request model for generating and sending OTP via Textbelt API.
+    
+    Attributes:
+        phone: Phone number in E.164 format (e.g., +1234567890)
+        userid: Unique identifier for the user
+        key: Your Textbelt API key
+        message: Optional custom message template. Use $OTP to include the code
+        lifetime: Optional validity duration in seconds (default: 180)
+        length: Optional number of digits in OTP (default: 6)
+    """
+    phone: str
+    userid: str
+    key: str
+    message: Optional[str] = None
+    lifetime: Optional[int] = None
+    length: Optional[int] = None
+
+    # Constants for validation
+    PHONE_REGEX: ClassVar[re.Pattern] = re.compile(r'^\+[1-9]\d{1,14}$')
+    MIN_LIFETIME: ClassVar[int] = 30  # minimum 30 seconds
+    MAX_LIFETIME: ClassVar[int] = 3600  # maximum 1 hour
+    MIN_LENGTH: ClassVar[int] = 4
+    MAX_LENGTH: ClassVar[int] = 10
+
+    def __post_init__(self):
+        """Validate the request data after initialization."""
+        if not self.PHONE_REGEX.match(self.phone):
+            raise ValueError(
+                "Phone number must be in E.164 format (e.g., +1234567890)"
+            )
+        
+        if not self.userid:
+            raise ValueError("userid cannot be empty")
+
+        if self.lifetime is not None:
+            if not isinstance(self.lifetime, int):
+                raise ValueError("lifetime must be an integer")
+            if self.lifetime < self.MIN_LIFETIME or self.lifetime > self.MAX_LIFETIME:
+                raise ValueError(
+                    f"lifetime must be between {self.MIN_LIFETIME} and {self.MAX_LIFETIME} seconds"
+                )
+
+        if self.length is not None:
+            if not isinstance(self.length, int):
+                raise ValueError("length must be an integer")
+            if self.length < self.MIN_LENGTH or self.length > self.MAX_LENGTH:
+                raise ValueError(
+                    f"length must be between {self.MIN_LENGTH} and {self.MAX_LENGTH} digits"
+                )
+
+@dataclass
+class OTPGenerateResponse:
+    """Response model for OTP generation.
+    
+    Attributes:
+        success: Whether the OTP was successfully sent
+        quota_remaining: Number of messages remaining in your quota
+        text_id: The ID of the text message sent
+        otp: The generated one-time code (only returned in test mode)
+        error: Error message if the operation failed
+    """
+    success: bool
+    quota_remaining: int
+    text_id: Optional[str] = None
+    otp: Optional[str] = None
+    error: Optional[str] = None
+
+@dataclass
+class OTPVerifyRequest:
+    """Request model for verifying OTP codes.
+    
+    Attributes:
+        otp: The code entered by the user
+        userid: The ID of the user (must match the ID used in generate)
+        key: Your Textbelt API key
+    """
+    otp: str
+    userid: str
+    key: str
+
+    def __post_init__(self):
+        """Validate the request data after initialization."""
+        if not self.otp:
+            raise ValueError("otp cannot be empty")
+        if not self.otp.isdigit():
+            raise ValueError("otp must contain only digits")
+        if not self.userid:
+            raise ValueError("userid cannot be empty")
+
+@dataclass
+class OTPVerifyResponse:
+    """Response model for OTP verification.
+    
+    Attributes:
+        success: Whether the request was successfully processed
+        is_valid_otp: Whether the OTP is correct for the given userid
+        error: Error message if the operation failed
+    """
+    success: bool
+    is_valid_otp: bool
+    error: Optional[str] = None

@@ -5,6 +5,10 @@ from .models import (
     SMSResponse,
     StatusResponse,
     QuotaResponse,
+    OTPGenerateRequest,
+    OTPGenerateResponse,
+    OTPVerifyRequest,
+    OTPVerifyResponse,
 )
 from .exceptions import (
     QuotaExceededError,
@@ -82,3 +86,79 @@ class AsyncTextbeltClient:
             webhook_data=request.webhook_data
         )
         return await self.send_sms(test_request)
+
+    async def generate_otp(self, request: OTPGenerateRequest) -> OTPGenerateResponse:
+        """Generate and send a one-time password via SMS.
+        
+        Args:
+            request: The OTP generation request containing phone, userid, and options
+            
+        Returns:
+            OTPGenerateResponse containing success status and OTP details
+            
+        Raises:
+            QuotaExceededError: If you've run out of message quota
+            InvalidRequestError: If the request is invalid
+        """
+        payload = {
+            "phone": request.phone,
+            "userid": request.userid,
+            "key": self.api_key,
+        }
+        
+        if request.message:
+            payload["message"] = request.message
+        if request.lifetime:
+            payload["lifetime"] = request.lifetime
+        if request.length:
+            payload["length"] = request.length
+
+        response = await self._client.post(f"{self.BASE_URL}/otp/generate", data=payload)
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        if not data["success"]:
+            if "quota" in data.get("error", "").lower():
+                raise QuotaExceededError("SMS quota exceeded")
+            raise InvalidRequestError(data.get("error", "Unknown error"))
+
+        return OTPGenerateResponse(
+            success=data["success"],
+            quota_remaining=data["quotaRemaining"],
+            text_id=data.get("textId"),
+            otp=data.get("otp"),
+            error=data.get("error")
+        )
+
+    async def verify_otp(self, request: OTPVerifyRequest) -> OTPVerifyResponse:
+        """Verify a one-time password entered by a user.
+        
+        Args:
+            request: The OTP verification request containing the code and userid
+            
+        Returns:
+            OTPVerifyResponse indicating whether the code is valid
+            
+        Raises:
+            InvalidRequestError: If the request is invalid
+        """
+        params = {
+            "otp": request.otp,
+            "userid": request.userid,
+            "key": self.api_key,
+        }
+
+        response = await self._client.get(f"{self.BASE_URL}/otp/verify", params=params)
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        if not data["success"]:
+            raise InvalidRequestError(data.get("error", "Unknown error"))
+
+        return OTPVerifyResponse(
+            success=data["success"],
+            is_valid_otp=data["isValidOtp"],
+            error=data.get("error")
+        )
