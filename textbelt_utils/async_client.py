@@ -1,6 +1,7 @@
-import httpx
 import asyncio
-from typing import List, Dict
+from typing import Dict
+
+import httpx
 
 from .models import (
     SMSRequest,

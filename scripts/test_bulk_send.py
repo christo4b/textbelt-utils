@@ -4,7 +4,10 @@ from textbelt_utils import (
     load_config,
     get_env_var,
 )
-from textbelt_utils.exceptions import QuotaExceededError, InvalidRequestError
+from textbelt_utils.exceptions import (
+    QuotaExceededError,
+    InvalidRequestError,
+)
 
 def main():
     # Load environment variables from .env file

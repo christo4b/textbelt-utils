@@ -1,5 +1,8 @@
+"""Textbelt API client utilities."""
+
 from .client import TextbeltClient
 from .async_client import AsyncTextbeltClient
+from .config import load_config, get_env_var
 from .models import (
     SMSRequest,
     SMSResponse,
@@ -22,7 +25,6 @@ from .exceptions import (
     RateLimitError,
 )
 from .utils import verify_webhook
-from .config import load_config, get_env_var
 
 __all__ = [
     'TextbeltClient',

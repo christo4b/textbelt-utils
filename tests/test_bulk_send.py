@@ -1,6 +1,5 @@
 import unittest
-from unittest.mock import patch, Mock
-import json
+from unittest.mock import Mock, patch
 
 from textbelt_utils.client import TextbeltClient
 from textbelt_utils.models import BulkSMSRequest, SMSResponse

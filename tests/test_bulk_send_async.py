@@ -1,11 +1,9 @@
-import pytest
-import pytest_asyncio
-import json
 import asyncio
 from unittest.mock import Mock
 
 import httpx
-import respx
+import pytest
+import pytest_asyncio
 
 from textbelt_utils.async_client import AsyncTextbeltClient
 from textbelt_utils.models import BulkSMSRequest, SMSResponse

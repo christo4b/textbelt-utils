@@ -1,6 +1,8 @@
 import json
-import requests
 import time
+from typing import Dict
+
+import requests
 
 from .models import (
     SMSRequest,
