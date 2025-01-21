@@ -1,4 +1,6 @@
 import httpx
+import asyncio
+from typing import List, Dict
 
 from .models import (
     SMSRequest,
@@ -9,10 +11,14 @@ from .models import (
     OTPGenerateResponse,
     OTPVerifyRequest,
     OTPVerifyResponse,
+    BulkSMSRequest,
+    BulkSMSResponse,
 )
 from .exceptions import (
     QuotaExceededError,
     InvalidRequestError,
+    RateLimitError,
+    APIError,
 )
 
 class AsyncTextbeltClient:
@@ -42,7 +48,18 @@ class AsyncTextbeltClient:
         }
 
         response = await self._client.post(f"{self.BASE_URL}/text", data=payload)
-        response.raise_for_status()
+        
+        # Handle rate limiting
+        if response.status_code == 429:
+            data = response.json()
+            retry_after = data.get("retryAfter", 60)
+            raise RateLimitError(f"Rate limit exceeded. Retry after {retry_after} seconds", retry_after)
+            
+        # Handle other HTTP errors
+        try:
+            response.raise_for_status()
+        except httpx.HTTPError as e:
+            raise APIError(f"API request failed: {str(e)}")
         
         data = response.json()
         
@@ -161,4 +178,83 @@ class AsyncTextbeltClient:
             success=data["success"],
             is_valid_otp=data["isValidOtp"],
             error=data.get("error")
+        )
+
+    async def send_bulk_sms(self, request: BulkSMSRequest) -> BulkSMSResponse:
+        """Send multiple SMS messages in bulk with concurrent sending and rate limiting.
+        
+        Args:
+            request: A BulkSMSRequest object containing the messages to send
+            
+        Returns:
+            A BulkSMSResponse object containing the results of the bulk send operation
+            
+        Raises:
+            QuotaExceededError: If the quota is exceeded during sending
+            InvalidRequestError: If any of the messages are invalid
+            APIError: If there is an error communicating with the API
+            RateLimitError: If rate limit is exceeded
+        """
+        results: Dict[str, SMSResponse] = {}
+        errors: Dict[str, str] = {}
+        
+        # Create batches of phone numbers
+        phone_batches = [
+            request.phones[i:i + request.batch_size]
+            for i in range(0, len(request.phones), request.batch_size)
+        ]
+        
+        async def send_message(phone: str) -> tuple[str, SMSResponse | Exception]:
+            try:
+                message = request.message if request.message is not None else request.individual_messages[phone]
+                sms_request = SMSRequest(
+                    phone=phone,
+                    message=message,
+                    key=request.key or self.api_key,
+                    sender=request.sender,
+                    reply_webhook_url=request.reply_webhook_url,
+                    webhook_data=request.webhook_data
+                )
+                response = await self.send_sms(sms_request)
+                return phone, response
+            except (QuotaExceededError, RateLimitError) as e:
+                # Propagate critical errors
+                raise
+            except Exception as e:
+                return phone, e
+        
+        # Process each batch with concurrent sending
+        for batch in phone_batches:
+            # Create tasks for concurrent sending within the batch
+            tasks = [send_message(phone) for phone in batch]
+            
+            try:
+                # Wait for all messages in the batch to complete
+                batch_results = await asyncio.gather(*tasks)
+                
+                # Process results
+                for phone, result in batch_results:
+                    if isinstance(result, Exception):
+                        errors[phone] = str(result)
+                    else:
+                        results[phone] = result
+                
+                # Apply rate limiting delay between batches if there are more batches
+                if request.delay_between_messages > 0 and batch != phone_batches[-1]:
+                    await asyncio.sleep(request.delay_between_messages)
+            except (QuotaExceededError, RateLimitError) as e:
+                # Propagate critical errors
+                raise
+        
+        # Calculate statistics
+        total_messages = len(request.phones)
+        successful_messages = len([r for r in results.values() if r.success])
+        failed_messages = total_messages - successful_messages
+        
+        return BulkSMSResponse(
+            total_messages=total_messages,
+            successful_messages=successful_messages,
+            failed_messages=failed_messages,
+            results=results,
+            errors=errors
         )
